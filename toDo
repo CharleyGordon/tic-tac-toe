@@ -1,0 +1,84 @@
+1) [D] DOM:
+    handle game visuals:
+        provide objects:
+            array of squares;
+            container;
+            player customization container;
+        create 3 x 3 grid;
+        add animations:
+            fill grid on player click (with x or o)
+            add animation on win:
+                e.g player <playerName> wins!;
+            add animation on tie:
+                e.g `tie!`;
+    handle player customization:
+        add separate window for changing nickname and (?) color
+2) [P] Players:
+    create players:
+        add properties:
+            name;
+            color (?);
+            score: 
+                gamesWon;
+                gamesLost;
+                average (win to loss);
+            changeName();
+            changeColor();
+3) [L] logic:
+    base game:
+        input:
+            check for free area:
+                is area free ?:
+                   Y:
+                        {fillSpace} ;
+                    N: 
+                        return;
+            check if player won: 
+                <get object>;
+                <get text from object>
+                <how many objects in array match?>
+                if < 3: return;
+                check if there is any other object in [D4] squares array:
+                    <get row and column number of those objects>;
+                    <pick rows and columns separetly>;
+                    check options:
+                        option1:
+                            <watch column array>;
+                            is column array filled fully with X or O?:
+                                N: return;
+                                Y:
+                                    [L][fire when player wins];
+                        option2:
+                            <watch row array>;
+                            is row array filled fully with X or O?:
+                                N: return;
+                                Y:
+                                    [L][fire when player wins];
+                        option3:
+                            <watch first object>
+                            does second object have column higher / lower by one?:
+                                N: return;
+                                Y: 
+                                    <get direction (- or +)> 
+                                    does next object have same direction?:
+                                    N: return;
+                                    Y:
+                                        [L][fire when player wins];
+
+
+                [] [] []
+                [] [] []
+                [] [] []
+        output:
+            fire when player wins:
+                disable [D] pointer events;
+                toggle [D] animations;
+                change [P] player score:
+                    has player won?:
+                        Y:
+                            [P22] gamesWon++;
+                        N:
+                            [P23] gamesLost++;
+    player customization:
+        change name;
+        change color;
