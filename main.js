@@ -18,9 +18,13 @@ const pubSub = {
   },
   publish: (eventName, args = null) => {
     const functions = pubSub["events"][eventName];
-    console.dir(functions);
     functions.forEach((callbackFunction) => {
-      callbackFunction(args);
+      try {
+        callbackFunction(args);
+      } catch {
+        console.error(eventName);
+        console.error(callbackFunction);
+      }
     });
   },
 };
@@ -53,6 +57,11 @@ const domHandler = {
     clearBoard: () => {
       domHandler.objects.board.innerHTML = "";
       domHandler.objects.buttons = [];
+      domHandler.objects.board.removeEventListener(
+        "click",
+        domHandler.events.bookBoard
+      );
+      pubSub.publish("reRender");
     },
     renderNick: (nickname) => {
       domHandler.objects.playerIndicator.textContent = `${nickname}'s`;
@@ -66,29 +75,55 @@ const domHandler = {
         "click",
         domHandler.events.bookBoard
       );
-      pubSub.publish("boardLoaded", true);
+      pubSub.publish("boardLoaded");
     },
   },
   events: {
     bookBoard: (event) => {
-      //   console.dir(event.target);
       if (event.target.disabled) return;
       event.target.disabled = "true";
       event.target.textContent = domHandler.objects.board.dataset.playerSign;
       pubSub.publish("endOfTurn");
       //   now get player data and fill in here
     },
+    setColor(color) {
+      // domHandler.objects.board.dataset
+    },
   },
 };
 const playerBase = {
   players: new Map(),
   identifiers: [],
+  signs: new Set(),
+  current: "",
+  customization: {
+    rename(nick, newNick) {
+      if (!playerBase.players.has(nick)) return;
+      playerBase.players.get(nick).changeNick(newNick);
+    },
+    reSign(nick, newSign) {
+      if (!playerBase.players.get(nick))
+        return console.error(`${nick}: no such player`);
+      playerBase.get(nick).changeSign(newSign);
+    },
+    changeColor(nick, newColor) {
+      playerBase.get(nick).changeColor(newColor);
+    },
+  },
+  setIdentifiers(args) {
+    console.dir(args);
+    const identifiers = [];
+    for (const i of playerBase.players.values()) {
+      identifiers.push([i.getNick(), i.getSign()]);
+    }
+    playerBase.identifiers = identifiers.reverse();
+    pubSub.publish("playersLoaded", identifiers);
+  },
 };
 
-const player = function (nick = "player-one", sign = "X") {
+const player = function (nick = "Cross", sign = "X", color = "red") {
   // let timesWon = 0;
   // let timesLose = 0;
-  // let color = "red";
   const getNick = function () {
     return nick;
   };
@@ -100,38 +135,60 @@ const player = function (nick = "player-one", sign = "X") {
     playerBase.players.delete(nick);
     nick = newNick;
     playerBase.players.set(nick, this);
-    playerBase.setIdentifiers();
+    pubSub.publish("nickChanged");
+  };
+  const changeColor = function (newColor) {
+    color = newColor;
+    pubSub.publish("newColor", nick, color);
+  };
+  const getColor = function () {
+    return color;
+  };
+  const changeSign = function (newSign) {
+    if (playerBase.signs.has(newSign)) {
+      return console.error(` ${newSign}: this sign is already taken`);
+    }
+    playerBase.signs.delete(sign);
+    sign = newSign;
+    playerBase.signs.add(sign);
+    pubSub.publish("signChanged");
   };
   const getSign = function () {
     return sign;
   };
+  playerBase.signs.add(sign);
   return {
     getNick,
     changeNick,
     getSign,
+    changeSign,
+    changeColor,
   };
 };
 playerBase.players.set("player-one", player());
-playerBase.players.set("player-two", player("player-two", "O"));
-playerBase.setIdentifiers = function (args) {
-  console.dir(args);
-  const identifiers = [];
-  for (const i of playerBase.players.values()) {
-    identifiers.push([i.getNick(), i.getSign()]);
-  }
-  playerBase.identifiers = identifiers.reverse();
-  pubSub.publish("playersLoaded", identifiers);
+playerBase.players.set("player-two", player("Circle", "O", (color = "green")));
+
+playerBase.setCurrent = function (nickname) {
+  playerBase.current = nickname;
 };
+playerBase.getCurent = function () {
+  console.log("fired getCurrent");
+  console.dir(playerBase.current);
+  pubSub.publish("showWinner", playerBase.current);
+};
+
 const logics = {
   getPlayer(array) {
     console.dir(array);
     console.dir(typeof array);
     const currentPlayer = array.reverse()[0];
+    const lastPlayer = array[1];
+    const lastNickname = lastPlayer[0];
     const nickname = currentPlayer[0];
     const sign = currentPlayer[1];
     pubSub.publish("playerChanged", nickname);
+    pubSub.publish("trackPlayer", lastNickname);
     pubSub.publish("newSign", sign);
-    return [nickname, sign];
   },
   fetchPlayers() {
     pubSub.publish("newTurn", playerBase.identifiers);
@@ -172,37 +229,61 @@ const logics = {
     const signs = new Set(array.map((item) => item.textContent)); //get unique text (will serve as user mark)
     return signs.size === 1;
   },
+
   checkGrid(array) {
-    // console.dir(array);
     for (const subArray of array) {
-      if (subArray.some((item) => !item.disabled)) continue;
-      //for every nested array
-      if (this.checkSigns(subArray)) {
-        return subArray;
+      // const [value, sign] = logics.checkSigns(subArray);
+      if (logics.checkSigns(subArray)) {
+        return logics.checkSigns(subArray);
       }
     }
     return false;
+  },
+
+  checkDrawOption(array) {
+    let signs = array.map((item) => item.textContent);
+    signs = signs.filter((item) => item !== "");
+    const uniques = new Set(signs);
+    if (uniques.size > 1) return true;
+    return false;
+  },
+  checkDraw(array) {
+    const active = array.filter((item) => !item.disabled);
+    if (active.length < 3) return alert("it's a draw!");
   },
   checkWin() {
     const [columnArray, rowArray] = logics.getGrid(domHandler.objects.buttons);
     const [diagonal1, diagonal2] = logics.getDiagonals(
       domHandler.objects.buttons
     );
-    console.dir({ diagonal1, diagonal2 });
+    // console.dir({ diagonal1, diagonal2 });
     const rowMatch = logics.checkGrid(columnArray);
     const columnMatch = logics.checkGrid(rowArray);
-    const diagonal1Match = logics.checkSigns(diagonal1);
-    const diagonal2Match = logics.checkSigns(diagonal2);
-    // console.dir({ rowMatch, columnMatch });
-    if (rowMatch || columnMatch || diagonal1Match || diagonal2Match)
-      alert("Game over!");
+    const diagonalMatch = logics.checkGrid([diagonal1, diagonal2]);
+    for (const option of [rowMatch, columnMatch, diagonalMatch]) {
+      if (!option) continue;
+      // const drawOptions = [columnArray, rowArray, diagonal1, diagonal2];
+      return pubSub.publish("gameOver");
+    }
+    return logics.checkDraw(domHandler.objects.buttons);
+  },
+  winStatus(nickname) {
+    alert(`${nickname} won!`);
+    pubSub.publish("reset");
   },
 };
 pubSub.subscribe("boardLoaded", playerBase.setIdentifiers);
 pubSub.subscribe("playersLoaded", logics.getPlayer);
+pubSub.subscribe("nickChanged", playerBase.setIdentifiers);
+pubSub.subscribe("signChanged", playerBase.setIdentifiers);
+pubSub.subscribe("trackPlayer", playerBase.setCurrent);
 pubSub.subscribe("endOfTurn", logics.fetchPlayers);
 pubSub.subscribe("endOfTurn", logics.checkWin);
-pubSub.subscribe("newTurn", logics.getPlayer);
 pubSub.subscribe("playerChanged", domHandler.manipulation.renderNick);
 pubSub.subscribe("newSign", domHandler.manipulation.signPlayer);
+pubSub.subscribe("newTurn", logics.getPlayer);
+pubSub.subscribe("gameOver", playerBase.getCurent);
+pubSub.subscribe("showWinner", logics.winStatus);
+pubSub.subscribe("reset", domHandler.manipulation.clearBoard);
+pubSub.subscribe("reRender", domHandler.manipulation.init);
 domHandler.manipulation.init();
