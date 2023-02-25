@@ -69,6 +69,9 @@ const domHandler = {
     signPlayer: (sign) => {
       domHandler.objects.board.dataset.playerSign = sign;
     },
+    setColor: (color) => {
+      domHandler.objects.board.dataset.color = color;
+    },
     init: () => {
       domHandler.manipulation.fillBoard();
       domHandler.objects.board.addEventListener(
@@ -83,11 +86,9 @@ const domHandler = {
       if (event.target.disabled) return;
       event.target.disabled = "true";
       event.target.textContent = domHandler.objects.board.dataset.playerSign;
+      event.target.style.color = domHandler.objects.board.dataset.color;
       pubSub.publish("endOfTurn");
       //   now get player data and fill in here
-    },
-    setColor(color) {
-      // domHandler.objects.board.dataset
     },
   },
 };
@@ -96,27 +97,41 @@ const playerBase = {
   identifiers: [],
   signs: new Set(),
   current: "",
+  checks: {
+    checkNick(nick) {
+      if (!playerBase.players.get(nick)) return false;
+      return true;
+    },
+    displayError(nick) {
+      return console.error(`${nick}: no such player`);
+    },
+  },
   customization: {
     rename(nick, newNick) {
       if (!playerBase.players.has(nick)) return;
       playerBase.players.get(nick).changeNick(newNick);
     },
+
     reSign(nick, newSign) {
-      if (!playerBase.players.get(nick))
-        return console.error(`${nick}: no such player`);
+      if (!playerBase.checks.checkNick(nick))
+        return playerBase.checks.displayError(nick);
       playerBase.get(nick).changeSign(newSign);
     },
     changeColor(nick, newColor) {
-      playerBase.get(nick).changeColor(newColor);
+      if (!playerBase.checks.checkNick(nick))
+        return playerBase.checks.displayError(nick);
+      playerBase.players.get(nick).changeColor(newColor);
+      playerBase.setIdentifiers();
     },
   },
   setIdentifiers(args) {
     console.dir(args);
     const identifiers = [];
     for (const i of playerBase.players.values()) {
-      identifiers.push([i.getNick(), i.getSign()]);
+      identifiers.push([i.getNick(), i.getSign(), i.getColor()]);
     }
     playerBase.identifiers = identifiers.reverse();
+    console.trace(identifiers);
     pubSub.publish("playersLoaded", identifiers);
   },
 };
@@ -139,7 +154,9 @@ const player = function (nick = "Cross", sign = "X", color = "red") {
   };
   const changeColor = function (newColor) {
     color = newColor;
-    pubSub.publish("newColor", nick, color);
+    console.log(`the color is now: ${color}`);
+    console.log(`${nick}`);
+    pubSub.publish("newColor", color);
   };
   const getColor = function () {
     return color;
@@ -162,11 +179,12 @@ const player = function (nick = "Cross", sign = "X", color = "red") {
     changeNick,
     getSign,
     changeSign,
+    getColor,
     changeColor,
   };
 };
-playerBase.players.set("player-one", player());
-playerBase.players.set("player-two", player("Circle", "O", (color = "green")));
+playerBase.players.set("Cross", player());
+playerBase.players.set("Circle", player("Circle", "O", (color = "green")));
 
 playerBase.setCurrent = function (nickname) {
   playerBase.current = nickname;
@@ -179,16 +197,17 @@ playerBase.getCurent = function () {
 
 const logics = {
   getPlayer(array) {
-    console.dir(array);
-    console.dir(typeof array);
     const currentPlayer = array.reverse()[0];
     const lastPlayer = array[1];
     const lastNickname = lastPlayer[0];
     const nickname = currentPlayer[0];
     const sign = currentPlayer[1];
+    const color = currentPlayer[2];
+    console.trace(color);
     pubSub.publish("playerChanged", nickname);
     pubSub.publish("trackPlayer", lastNickname);
     pubSub.publish("newSign", sign);
+    pubSub.publish("newColor", color);
   },
   fetchPlayers() {
     pubSub.publish("newTurn", playerBase.identifiers);
@@ -274,6 +293,7 @@ const logics = {
 };
 pubSub.subscribe("boardLoaded", playerBase.setIdentifiers);
 pubSub.subscribe("playersLoaded", logics.getPlayer);
+pubSub.subscribe("newColor", domHandler.manipulation.setColor);
 pubSub.subscribe("nickChanged", playerBase.setIdentifiers);
 pubSub.subscribe("signChanged", playerBase.setIdentifiers);
 pubSub.subscribe("trackPlayer", playerBase.setCurrent);
