@@ -30,8 +30,12 @@ const pubSub = {
 };
 const domHandler = {
   objects: {
+    playroom: document.getElementById("playroom"),
+    playroomNavigation: document.querySelector("#playroom nav"),
     board: document.querySelector(".board"),
     buttons: [],
+    settings: document.getElementById("settings"),
+    userSettings: document.getElementById("user-settings"),
     playerIndicator: document.querySelector(".player"),
   },
   manipulation: {
@@ -55,40 +59,120 @@ const domHandler = {
       }
     },
     clearBoard: () => {
+      domHandler.objects.board.removeChild(
+        domHandler.objects.playroomNavigation
+      );
       domHandler.objects.board.innerHTML = "";
+      domHandler.objects.board.appendChild(
+        domHandler.objects.playroomNavigation
+      );
       domHandler.objects.buttons = [];
       domHandler.objects.board.removeEventListener(
         "click",
         domHandler.events.bookBoard
       );
+      domHandler.objects.playroom.removeEventListener(
+        "click",
+        domHandler.events.gameStarted
+      );
+      domHandler.objects.userSettings.removeEventListener(
+        "change",
+        domHandler.events.colorSet
+      );
+      document.body.removeEventListener("click", domHandler.events.redirect);
       pubSub.publish("reRender");
+      domHandler.objects.userSettings.removeEventListener(
+        "submit",
+        domHandler.events.customizeUsers
+      );
     },
     renderNick: (nickname) => {
-      domHandler.objects.playerIndicator.textContent = `${nickname}'s`;
+      domHandler.objects.playerIndicator.textContent = `${nickname}`;
     },
     signPlayer: (sign) => {
       domHandler.objects.board.dataset.playerSign = sign;
     },
     setColor: (color) => {
       domHandler.objects.board.dataset.color = color;
+      domHandler.objects.board.style.setProperty("--player-color", color);
+      domHandler.objects.playerIndicator.style.color = color;
     },
+
     init: () => {
       domHandler.manipulation.fillBoard();
       domHandler.objects.board.addEventListener(
         "click",
         domHandler.events.bookBoard
       );
+      domHandler.objects.playroom.addEventListener(
+        "click",
+        domHandler.events.gameStarted
+      );
+      domHandler.objects.userSettings.addEventListener(
+        "change",
+        domHandler.events.colorSet
+      );
+      document.body.addEventListener("click", domHandler.events.redirect);
       pubSub.publish("boardLoaded");
+      domHandler.objects.userSettings.addEventListener(
+        "submit",
+        domHandler.events.customizeUsers
+      );
     },
   },
   events: {
     bookBoard: (event) => {
-      if (event.target.disabled) return;
+      if (event.target.disabled || event.target.tagName !== "BUTTON") return;
       event.target.disabled = "true";
       event.target.textContent = domHandler.objects.board.dataset.playerSign;
       event.target.style.color = domHandler.objects.board.dataset.color;
-      pubSub.publish("endOfTurn");
+      pubSub.publish("endOfTurn", domHandler.objects.buttons);
       //   now get player data and fill in here
+    },
+    colorSet: (event) => {
+      if (event.target.type !== "color") return;
+      const colorValue = event.target.value;
+      console.trace(event.target.closest("fieldset"));
+      event.target
+        .closest("fieldset")
+        .style.setProperty("--player-color", colorValue);
+    },
+    gameStarted: (event) => {
+      event.preventDefault();
+      if (!event.target.closest("nav")) return;
+      let target = event.target;
+      if (target.tagName === "LI") {
+        target = target.querySelector("a");
+      }
+      if (target.classList.contains("reset")) pubSub.publish("reset");
+    },
+    redirect: (event) => {
+      if (
+        !event.target.matches('[href$="#settings"], [href$="#playroom"]') ||
+        event.target.matches(".reset")
+      )
+        return;
+      domHandler.objects.settings.classList.toggle("redirected");
+      domHandler.objects.settings
+        .querySelector('[href$="#user-settings"]')
+        .click();
+    },
+    customizeUsers: (event) => {
+      event.preventDefault();
+      const data = new FormData(domHandler.objects.userSettings);
+      const player1 = [
+        data.get("nickname-1"),
+        data.get("color-1"),
+        data.get("sign-1"),
+      ];
+      console.dir(player1);
+      pubSub.publish("setPlayer", player1);
+      const player2 = [
+        data.get("nickname-2"),
+        data.get("color-2"),
+        data.get("sign-2"),
+      ];
+      pubSub.publish("setPlayer", player2);
     },
   },
 };
@@ -107,15 +191,24 @@ const playerBase = {
     },
   },
   customization: {
-    rename(nick, newNick) {
-      if (!playerBase.players.has(nick)) return;
+    // rename(nick, newNick) {
+    //   if (!playerBase.players.has(nick)) return;
+    //   playerBase.players.get(nick).changeNick(newNick);
+    // },
+    rename(nick, newNick, unknown = false) {
+      if (!playerBase.players.has(nick) && !unknown) return;
+      console.log("not yet");
+      if (unknown) {
+        nick = playerBase.identifiers[0][0];
+      }
+      console.dir(nick);
       playerBase.players.get(nick).changeNick(newNick);
+      return newNick;
     },
-
     reSign(nick, newSign) {
       if (!playerBase.checks.checkNick(nick))
         return playerBase.checks.displayError(nick);
-      playerBase.get(nick).changeSign(newSign);
+      playerBase.players.get(nick).changeSign(newSign);
     },
     changeColor(nick, newColor) {
       if (!playerBase.checks.checkNick(nick))
@@ -124,51 +217,51 @@ const playerBase = {
       playerBase.setIdentifiers();
     },
   },
-  setIdentifiers(args) {
-    console.dir(args);
+  setIdentifiers() {
     const identifiers = [];
     for (const i of playerBase.players.values()) {
       identifiers.push([i.getNick(), i.getSign(), i.getColor()]);
     }
     playerBase.identifiers = identifiers.reverse();
-    console.trace(identifiers);
+
     pubSub.publish("playersLoaded", identifiers);
+  },
+  setPlayer(array) {
+    console.dir(array);
+    const [nick, color, sign] = array;
+    const newNick = playerBase.customization.rename("", nick, true);
+    playerBase.customization.changeColor(nick, color);
+    playerBase.customization.reSign(newNick, sign);
   },
 };
 
 const player = function (nick = "Cross", sign = "X", color = "red") {
-  // let timesWon = 0;
-  // let timesLose = 0;
   const getNick = function () {
     return nick;
-  };
-  const lose = function () {
-    timesLose++;
   };
   const changeNick = function (newNick) {
     if (playerBase.players.has(newNick)) return false;
     playerBase.players.delete(nick);
     nick = newNick;
     playerBase.players.set(nick, this);
-    pubSub.publish("nickChanged");
+    pubSub.publish("newSetting");
   };
   const changeColor = function (newColor) {
     color = newColor;
     console.log(`the color is now: ${color}`);
     console.log(`${nick}`);
-    pubSub.publish("newColor", color);
   };
   const getColor = function () {
     return color;
   };
   const changeSign = function (newSign) {
-    if (playerBase.signs.has(newSign)) {
+    if (playerBase.signs.has(newSign) && getSign() !== newSign) {
       return console.error(` ${newSign}: this sign is already taken`);
     }
     playerBase.signs.delete(sign);
     sign = newSign;
     playerBase.signs.add(sign);
-    pubSub.publish("signChanged");
+    pubSub.publish("newSetting");
   };
   const getSign = function () {
     return sign;
@@ -189,7 +282,7 @@ playerBase.players.set("Circle", player("Circle", "O", (color = "green")));
 playerBase.setCurrent = function (nickname) {
   playerBase.current = nickname;
 };
-playerBase.getCurent = function () {
+playerBase.getCurrent = function () {
   console.log("fired getCurrent");
   console.dir(playerBase.current);
   pubSub.publish("showWinner", playerBase.current);
@@ -203,7 +296,6 @@ const logics = {
     const nickname = currentPlayer[0];
     const sign = currentPlayer[1];
     const color = currentPlayer[2];
-    console.trace(color);
     pubSub.publish("playerChanged", nickname);
     pubSub.publish("trackPlayer", lastNickname);
     pubSub.publish("newSign", sign);
@@ -251,7 +343,6 @@ const logics = {
 
   checkGrid(array) {
     for (const subArray of array) {
-      // const [value, sign] = logics.checkSigns(subArray);
       if (logics.checkSigns(subArray)) {
         return logics.checkSigns(subArray);
       }
@@ -268,23 +359,23 @@ const logics = {
   },
   checkDraw(array) {
     const active = array.filter((item) => !item.disabled);
-    if (active.length < 3) return alert("it's a draw!");
+    if (active.length < 3) {
+      alert("it's a draw!");
+      pubSub.publish("reset");
+    }
   },
-  checkWin() {
-    const [columnArray, rowArray] = logics.getGrid(domHandler.objects.buttons);
-    const [diagonal1, diagonal2] = logics.getDiagonals(
-      domHandler.objects.buttons
-    );
-    // console.dir({ diagonal1, diagonal2 });
+  checkWin(array) {
+    const [columnArray, rowArray] = logics.getGrid(array);
+    const [diagonal1, diagonal2] = logics.getDiagonals(array);
     const rowMatch = logics.checkGrid(columnArray);
     const columnMatch = logics.checkGrid(rowArray);
     const diagonalMatch = logics.checkGrid([diagonal1, diagonal2]);
     for (const option of [rowMatch, columnMatch, diagonalMatch]) {
       if (!option) continue;
-      // const drawOptions = [columnArray, rowArray, diagonal1, diagonal2];
+
       return pubSub.publish("gameOver");
     }
-    return logics.checkDraw(domHandler.objects.buttons);
+    return logics.checkDraw(array);
   },
   winStatus(nickname) {
     alert(`${nickname} won!`);
@@ -294,15 +385,15 @@ const logics = {
 pubSub.subscribe("boardLoaded", playerBase.setIdentifiers);
 pubSub.subscribe("playersLoaded", logics.getPlayer);
 pubSub.subscribe("newColor", domHandler.manipulation.setColor);
-pubSub.subscribe("nickChanged", playerBase.setIdentifiers);
-pubSub.subscribe("signChanged", playerBase.setIdentifiers);
+pubSub.subscribe("newSetting", playerBase.setIdentifiers);
 pubSub.subscribe("trackPlayer", playerBase.setCurrent);
+pubSub.subscribe("setPlayer", playerBase.setPlayer);
 pubSub.subscribe("endOfTurn", logics.fetchPlayers);
 pubSub.subscribe("endOfTurn", logics.checkWin);
 pubSub.subscribe("playerChanged", domHandler.manipulation.renderNick);
 pubSub.subscribe("newSign", domHandler.manipulation.signPlayer);
 pubSub.subscribe("newTurn", logics.getPlayer);
-pubSub.subscribe("gameOver", playerBase.getCurent);
+pubSub.subscribe("gameOver", playerBase.getCurrent);
 pubSub.subscribe("showWinner", logics.winStatus);
 pubSub.subscribe("reset", domHandler.manipulation.clearBoard);
 pubSub.subscribe("reRender", domHandler.manipulation.init);

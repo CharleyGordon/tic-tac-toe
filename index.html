@@ -9,9 +9,116 @@
     <title>Tic-tac-toe</title>
   </head>
   <body data-grid>
-    <span class="turn-indicator" data-fixed
-      ><span class="player"></span> turn</span
-    >
-    <div class="board" data-grid></div>
+    <div id="playroom" class="istarget" data-grid data-place-items="center">
+      <span class="turn-indicator" data-grid>
+        <span>Current player: </span> <span class="player"></span
+      ></span>
+
+      <div class="board" data-grid data-relative data-relative>
+        <nav data-absolute>
+          <ul data-grid data-even-columns>
+            <li><a href="#playroom" class="reset">restart</a></li>
+            <li><a href="#settings">settings</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+    <div id="settings" class="istarget" data-grid data-absolute>
+      <div class="screen" data-grid>
+        <form action="" id="user-settings" data-grid>
+          <!--       <h2>set users</h2> -->
+          <fieldset data-grid id="player-1">
+            <legend>player one:</legend>
+            <label for="nickname-1"
+              >nickname:<input
+                type="text"
+                name="nickname-1"
+                id="nickname-1"
+                autocomplete="nickname-1"
+                required
+                value="Cross"
+            /></label>
+            <label for="color-1"
+              >color:
+              <input type="color" name="color-1" id="color-1" value="#FF0000"
+            /></label>
+            <label for="sign-1"
+              >sign:<input
+                type="text"
+                name="sign-1"
+                id="sign-1"
+                autocomplete="sign-1"
+                value="X"
+                required
+            /></label>
+            <!--         <a href="#player-2">next player</a> -->
+          </fieldset>
+          <fieldset data-grid id="player-2">
+            <legend>player two:</legend>
+            <label for="nickname-2"
+              >nickname:<input
+                type="text"
+                name="nickname-2"
+                autocomplete="nickname-2"
+                required
+                id="nickname-2"
+                value="Circle"
+            /></label>
+            <label for="color-2"
+              >color:
+              <input type="color" name="color-2" id="color-2" value="#00FF00"
+            /></label>
+            <label for="sign-2"
+              >sign:<input
+                type="text"
+                name="sign-2"
+                required
+                autocomplete="sign-2"
+                id="sign-2"
+                value="O"
+            /></label>
+            <!--       <a href="#player-1">previous</a>
+          <a href="#!">submit</a> -->
+          </fieldset>
+          <button type="submit">Apply</button>
+        </form>
+        <form action="" id="gameboard-settings" data-grid>
+          <fieldset data-grid>
+            <legend>gap settings</legend>
+            <label for=""
+              >gap unit:
+              <select name="" id="">
+                <option value="rem">rem</option>
+                <option value="em">em</option>
+                <option value="px">px</option>
+              </select>
+            </label>
+            <label for=""
+              >gap: <input type="number" name="" id="" min=".2" step=".1"
+            /></label>
+          </fieldset>
+          <fieldset data-grid>
+            <legend>background-settings</legend>
+            <label for=""><input type="color" name="" id="" /></label>
+          </fieldset>
+        </form>
+      </div>
+      <nav>
+        <ul data-grid data-even-columns>
+          <li><a href="#user-settings">user settings</a></li>
+          <li><a href="#gameboard-settings">gameboard settings</a></li>
+          <li><a href="#playroom">exit</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="home-screen" data-fixed>
+      <h1>Tic Tac Toe</h1>
+      <nav>
+        <ul data-grid data-even-columns>
+          <li><a href="#playroom">play</a></li>
+          <li><a href="#settings">settings</a></li>
+        </ul>
+      </nav>
+    </div>
   </body>
 </html>

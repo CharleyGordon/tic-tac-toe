@@ -4,6 +4,7 @@
             array of squares;
             container;
             player customization container;
+            start / reset button;
         create 3 x 3 grid;
         add animations:
             fill grid on player click (with x or o)
