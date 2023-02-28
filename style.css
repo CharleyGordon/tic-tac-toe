@@ -75,10 +75,17 @@ ul {
 .home-screen {
   text-align: center;
 }
-.turn-indicator {
-  position: fixed;
+/* here */
+.turn-indicator,
+.board nav,
+.players,
+.screen button[type="submit"],
+fieldset {
   justify-self: center;
+}
+.turn-indicator {
   grid-auto-flow: column;
+  align-self: end;
   padding: 1.5vmax;
   pointer-events: none;
 }
@@ -90,10 +97,18 @@ ul {
   padding: 5rem 2vw;
   aspect-ratio: 1;
 }
-.board nav {
-  justify-self: center;
+.board button {
+  display: grid;
+  place-items: center;
+  position: relative;
+  font-size: 0px;
 }
-
+.board button[data-sign]::before {
+  content: attr(data-sign);
+  position: absolute;
+  text-shadow: 1px 1px 1px black, -1px -1px 1px black;
+  font-size: 3vmax;
+}
 .turn-indicator span {
   align-self: center;
 }
@@ -102,6 +117,27 @@ ul {
   font-weight: 900;
   font-size: 2rem;
   text-shadow: 1px 1px 2px black;
+}
+.players,
+:where(.players ~ .board nav) {
+  --padding-block: min(1vh, 10px);
+  --nav-padding-block: calc(var(--padding-block) + 2rem);
+  padding-block: var(--padding-block, 0);
+}
+.board nav {
+  padding-block: var(--nav-padding-block);
+}
+.players {
+  gap: 0.5em;
+  font-size: 3rem;
+}
+/* .players .player-1,
+.players .player-2::before {
+  margin-inline-end: 0.5em;
+} */
+.players .versus {
+  color: wheat;
+  filter: drop-shadow(1px 1px 3px black);
 }
 button {
   transition: 0.5s;
@@ -151,11 +187,8 @@ button:not(:disabled):is(:hover, :focus) {
 .screen button[type="submit"] {
   grid-column: 1 / -1;
   text-align: center;
-}
-.screen button[type="submit"] {
   width: fit-content;
   padding: 0.25rem 5rem;
-  justify-self: center;
 }
 
 label {
@@ -172,7 +205,6 @@ perspective: 1000px;
   margin: 0 auto;
 }
 fieldset {
-  justify-self: center;
   justify-items: center;
   gap: 0.5rem;
   width: fit-content;
@@ -216,8 +248,11 @@ input {
     margin-block-start: 0;
     /* height: min(70%, 70vh); */
   }
+  .board nav {
+    --nav-padding-block: 0;
+  }
   .turn-indicator {
-    position: relative;
-    padding: 0;
+    /* position: relative; */
+    /* padding: 0; */
   }
 }

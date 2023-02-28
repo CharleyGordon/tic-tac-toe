@@ -37,6 +37,8 @@ const domHandler = {
     settings: document.getElementById("settings"),
     userSettings: document.getElementById("user-settings"),
     playerIndicator: document.querySelector(".player"),
+    player1: document.querySelector(".player-1"),
+    player2: document.querySelector(".player-2"),
   },
   manipulation: {
     fillBoard: () => {
@@ -118,6 +120,7 @@ const domHandler = {
         "submit",
         domHandler.events.customizeUsers
       );
+      domHandler.objects.userSettings.querySelector("button").click();
     },
   },
   events: {
@@ -125,7 +128,9 @@ const domHandler = {
       if (event.target.disabled || event.target.tagName !== "BUTTON") return;
       event.target.disabled = "true";
       event.target.textContent = domHandler.objects.board.dataset.playerSign;
-      event.target.style.color = domHandler.objects.board.dataset.color;
+      event.target.dataset.sign = domHandler.objects.board.dataset.playerSign;
+      event.target.style.color = event.target.style.backgroundColor =
+        domHandler.objects.board.dataset.color;
       pubSub.publish("endOfTurn", domHandler.objects.buttons);
       //   now get player data and fill in here
     },
@@ -159,6 +164,8 @@ const domHandler = {
     },
     customizeUsers: (event) => {
       event.preventDefault();
+      pubSub.publish("reset");
+      pubSub.publish("reRender");
       const data = new FormData(domHandler.objects.userSettings);
       const player1 = [
         data.get("nickname-1"),
@@ -173,6 +180,10 @@ const domHandler = {
         data.get("sign-2"),
       ];
       pubSub.publish("setPlayer", player2);
+      domHandler.objects.player1.textContent = player1[0];
+      domHandler.objects.player1.style.color = player1[1];
+      domHandler.objects.player2.textContent = player2[0];
+      domHandler.objects.player2.style.color = player2[1];
     },
   },
 };
@@ -191,10 +202,6 @@ const playerBase = {
     },
   },
   customization: {
-    // rename(nick, newNick) {
-    //   if (!playerBase.players.has(nick)) return;
-    //   playerBase.players.get(nick).changeNick(newNick);
-    // },
     rename(nick, newNick, unknown = false) {
       if (!playerBase.players.has(nick) && !unknown) return;
       console.log("not yet");
@@ -219,18 +226,24 @@ const playerBase = {
   },
   setIdentifiers() {
     const identifiers = [];
+    const nicks = [];
+    const colors = [];
     for (const i of playerBase.players.values()) {
       identifiers.push([i.getNick(), i.getSign(), i.getColor()]);
+      console.trace(i.getNick());
+      nicks.push(i.getNick());
     }
     playerBase.identifiers = identifiers.reverse();
 
     pubSub.publish("playersLoaded", identifiers);
+    // debugger;
+    // console.dir(colors);
   },
   setPlayer(array) {
     console.dir(array);
     const [nick, color, sign] = array;
     const newNick = playerBase.customization.rename("", nick, true);
-    playerBase.customization.changeColor(nick, color);
+    playerBase.customization.changeColor(newNick, color);
     playerBase.customization.reSign(newNick, sign);
   },
 };
@@ -240,7 +253,7 @@ const player = function (nick = "Cross", sign = "X", color = "red") {
     return nick;
   };
   const changeNick = function (newNick) {
-    if (playerBase.players.has(newNick)) return false;
+    if (playerBase.players.has(newNick) && nick !== newNick) return false;
     playerBase.players.delete(nick);
     nick = newNick;
     playerBase.players.set(nick, this);
@@ -359,7 +372,7 @@ const logics = {
   },
   checkDraw(array) {
     const active = array.filter((item) => !item.disabled);
-    if (active.length < 3) {
+    if (active.length === 0) {
       alert("it's a draw!");
       pubSub.publish("reset");
     }
