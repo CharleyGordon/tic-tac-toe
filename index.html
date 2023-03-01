@@ -9,7 +9,7 @@
     <title>Tic-tac-toe</title>
   </head>
   <body data-grid>
-    <div id="playroom" class="istarget" data-grid data-place-items="center">
+    <div id="playroom" class="istarget" data-grid>
       <span class="turn-indicator" data-grid data-fixed>
         <span>Current player: </span> <span class="player"></span
       ></span>
@@ -21,8 +21,12 @@
       <div class="board" data-grid data-relative data-relative>
         <nav data-absolute>
           <ul data-grid data-even-columns>
-            <li><a href="#playroom" class="reset">restart</a></li>
-            <li><a href="#settings">settings</a></li>
+            <li>
+              <a href="#playroom" class="reset" title="restart"></a>
+            </li>
+            <li>
+              <a href="#settings" data-relative data-grid title="settings"></a>
+            </li>
           </ul>
         </nav>
       </div>
@@ -55,7 +59,6 @@
                 value="X"
                 required
             /></label>
-            <!--         <a href="#player-2">next player</a> -->
           </fieldset>
           <fieldset data-grid id="player-2">
             <legend>player two:</legend>
@@ -84,34 +87,32 @@
             <!--       <a href="#player-1">previous</a>
           <a href="#!">submit</a> -->
           </fieldset>
+          <span
+            >To play against computer, type COMPUTER into one of nickname
+            fields</span
+          >
           <button type="submit">Apply</button>
         </form>
         <form action="" id="gameboard-settings" data-grid>
-          <fieldset data-grid>
+          <fieldset data-grid data-align-items="start">
             <legend>gap settings</legend>
-            <label for=""
-              >gap unit:
-              <select name="" id="">
-                <option value="rem">rem</option>
-                <option value="em">em</option>
-                <option value="px">px</option>
-              </select>
-            </label>
-            <label for=""
-              >gap: <input type="number" name="" id="" min=".2" step=".1"
+            <label for="gap"
+              >gap: <input type="number" name="gap" id="gap" min=".2" step=".1"
             /></label>
-          </fieldset>
-          <fieldset data-grid>
-            <legend>background-settings</legend>
-            <label for=""><input type="color" name="" id="" /></label>
           </fieldset>
         </form>
       </div>
       <nav>
         <ul data-grid data-even-columns>
-          <li><a href="#user-settings">user settings</a></li>
-          <li><a href="#gameboard-settings">gameboard settings</a></li>
-          <li><a href="#playroom">exit</a></li>
+          <li data-grid data-justify-items="center">
+            <a href="#user-settings" title="user settings"></a>
+          </li>
+          <li data-grid data-justify-items="center">
+            <a href="#gameboard-settings" title="gameboard settings"></a>
+          </li>
+          <li data-grid data-justify-items="center">
+            <a href="#playroom" title="exit"></a>
+          </li>
         </ul>
       </nav>
     </div>
@@ -119,8 +120,12 @@
       <h1>Tic Tac Toe</h1>
       <nav>
         <ul data-grid data-even-columns>
-          <li><a href="#playroom">play</a></li>
-          <li><a href="#settings">settings</a></li>
+          <li data-grid data-justify-items="center">
+            <a href="#playroom" class="play" title="play"></a>
+          </li>
+          <li data-grid data-justify-items="center">
+            <a href="#settings" title="settings"></a>
+          </li>
         </ul>
       </nav>
     </div>

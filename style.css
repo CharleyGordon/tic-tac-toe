@@ -24,7 +24,9 @@
 [data-align-content="center"] {
   align-content: center;
 }
-
+[data-align-items="start"] {
+  align-items: start;
+}
 [data-align-items="center"] {
   align-items: center;
 }
@@ -96,6 +98,8 @@ fieldset {
   margin-block-start: 2rem;
   padding: 5rem 2vw;
   aspect-ratio: 1;
+  --gap: 0;
+  gap: calc(var(--gap) * 1rem);
 }
 .board button {
   display: grid;
@@ -127,6 +131,9 @@ fieldset {
 .board nav {
   padding-block: var(--nav-padding-block);
 }
+.board nav ul {
+  gap: 4rem;
+}
 .players {
   gap: 0.5em;
   font-size: 3rem;
@@ -149,6 +156,41 @@ button:not(:disabled):is(:hover, :focus) {
   background-color: var(--player-color, #444);
   filter: brightness(0.85) blur(0.5);
 }
+.reset::before,
+a[href="#settings"]::before,
+a[href="#user-settings"]::before,
+a[href="#gameboard-settings"]::before,
+a[title="exit"]::before,
+[title="play"]::before {
+  content: "";
+  /* position: absolute; */
+  display: block;
+  justify-self: center;
+  width: 24px;
+  aspect-ratio: 1;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+.reset::before {
+  background-image: url("restart.svg");
+}
+a[href="#settings"]::before {
+  background-image: url("settings.svg");
+}
+a[href="#user-settings"]::before {
+  background-image: url("user.svg");
+}
+a[href="#gameboard-settings"]::before {
+  background-image: url("board.svg");
+}
+a[title="exit"]::before {
+  background-image: url("exit.svg");
+  /* align-self: center; */
+}
+[title="play"]::before {
+  background-image: url("play-button.svg");
+  scale: 2;
+}
 /* settings */
 #settings {
   width: 70%;
@@ -156,6 +198,7 @@ button:not(:disabled):is(:hover, :focus) {
   border: 4px solid black;
   width: fit-content;
 }
+
 #settings.redirected ~ * {
   scale: 0;
 }
@@ -169,6 +212,10 @@ button:not(:disabled):is(:hover, :focus) {
 #settings > * {
   outline: 1px solid;
   padding: 1rem;
+}
+#user-settings span {
+  grid-column: 1 / -1;
+  text-align: center;
 }
 .screen {
   grid-auto-flow: column;
@@ -223,7 +270,6 @@ input {
   text-align: center;
   color: var(--player-color, black);
 }
-
 .screen > * {
   gap: 2rem;
   transition: scale 0.5s;

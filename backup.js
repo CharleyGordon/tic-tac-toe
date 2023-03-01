@@ -1,3 +1,7 @@
+// import { pubSub } from "./pubSub";
+// import { domHandler } from "./domHandler";
+// import { playerBase } from "./players";
+// import { logics } from "./logics";
 const pubSub = {
   events: {},
   subscribe: (eventName, functionName) => {
@@ -36,7 +40,6 @@ const domHandler = {
     playerIndicator: document.querySelector(".player"),
     player1: document.querySelector(".player-1"),
     player2: document.querySelector(".player-2"),
-    gameBoardSettings: document.querySelector("#gameboard-settings"),
   },
   manipulation: {
     fillBoard: () => {
@@ -81,18 +84,16 @@ const domHandler = {
       );
       document.body.removeEventListener("click", domHandler.events.redirect);
       pubSub.publish("reRender");
-      domHandler.objects.gameBoardSettings.removeEventListener(
-        "input",
-        domHandler.manipulation.setGap
+      domHandler.objects.userSettings.removeEventListener(
+        "submit",
+        domHandler.events.customizeUsers
       );
-      // domHandler.objects.userSettings.removeEventListener(
-      //   "submit",
-      //   domHandler.events.customizeUsers
-      // );
     },
-    setGap(event) {
-      if (event.target.type !== "number") return;
-      domHandler.objects.board.style.setProperty("--gap", event.target.value);
+    renderNick: (nickname) => {
+      domHandler.objects.playerIndicator.textContent = `${nickname}`;
+    },
+    signPlayer: (sign) => {
+      domHandler.objects.board.dataset.playerSign = sign;
     },
     setColor: (color) => {
       domHandler.objects.board.dataset.color = color;
@@ -115,13 +116,10 @@ const domHandler = {
         domHandler.events.colorSet
       );
       document.body.addEventListener("click", domHandler.events.redirect);
+      pubSub.publish("boardLoaded");
       domHandler.objects.userSettings.addEventListener(
         "submit",
-        domHandler.events.setUsers
-      );
-      domHandler.objects.gameBoardSettings.addEventListener(
-        "input",
-        domHandler.manipulation.setGap
+        domHandler.events.customizeUsers
       );
       domHandler.objects.userSettings.querySelector("button").click();
     },
@@ -130,14 +128,12 @@ const domHandler = {
     bookBoard: (event) => {
       if (event.target.disabled || event.target.tagName !== "BUTTON") return;
       event.target.disabled = "true";
-      event.target.textContent = event.target.dataset.sign =
-        domHandler.objects.playroom.dataset.sign1;
-      event.target.textContent = event.target.dataset.player =
-        domHandler.objects.playroom.dataset.player1;
-      event.target.style.backgroundColor =
-        domHandler.objects.playroom.dataset.color1;
-      event.target.style.color = "white";
+      event.target.textContent = domHandler.objects.board.dataset.playerSign;
+      event.target.dataset.sign = domHandler.objects.board.dataset.playerSign;
+      event.target.style.color = event.target.style.backgroundColor =
+        domHandler.objects.board.dataset.color;
       pubSub.publish("endOfTurn", domHandler.objects.buttons);
+      //   now get player data and fill in here
     },
     colorSet: (event) => {
       if (event.target.type !== "color") return;
@@ -158,7 +154,7 @@ const domHandler = {
     },
     redirect: (event) => {
       if (
-        !event.target.matches('[title="settings"], [title="exit"]') ||
+        !event.target.matches('[href$="#settings"], [href$="#playroom"]') ||
         event.target.matches(".reset")
       )
         return;
@@ -167,87 +163,36 @@ const domHandler = {
         .querySelector('[href$="#user-settings"]')
         .click();
     },
-    renderUsers() {
-      domHandler.objects.player1.textContent =
-        domHandler.objects.playroom.dataset.player1;
-      domHandler.objects.player1.style.color =
-        domHandler.objects.playroom.dataset.color1;
-      domHandler.objects.player2.textContent =
-        domHandler.objects.playroom.dataset.player2;
-      domHandler.objects.player2.style.color =
-        domHandler.objects.playroom.dataset.color2;
-    },
-    setUsers: (event) => {
+    customizeUsers: (event) => {
       event.preventDefault();
       pubSub.publish("reset");
       pubSub.publish("reRender");
       const data = new FormData(domHandler.objects.userSettings);
       const player1 = [
-        (nick = data.get("nickname-1")),
-        (color = data.get("color-1")),
-        (sign = data.get("sign-1")),
+        data.get("nickname-1"),
+        data.get("color-1"),
+        data.get("sign-1"),
       ];
-      domHandler.objects.playroom.dataset.player1 = nick;
-      domHandler.objects.playroom.dataset.color1 = color;
-      domHandler.objects.playroom.dataset.sign1 = sign;
+      console.dir(player1);
       pubSub.publish("setPlayer", player1);
       const player2 = [
-        (nick = data.get("nickname-2")),
-        (color = data.get("color-2")),
-        (sign = data.get("sign-2")),
+        data.get("nickname-2"),
+        data.get("color-2"),
+        data.get("sign-2"),
       ];
       pubSub.publish("setPlayer", player2);
-      domHandler.objects.playroom.dataset.player2 = nick;
-      domHandler.objects.playroom.dataset.color2 = color;
-      domHandler.objects.playroom.dataset.sign2 = sign;
-      pubSub.publish("renderUsers");
-      pubSub.publish("syncOutput");
-      pubSub.publish("aiMove", domHandler.objects.playroom.dataset.player1);
-    },
-    syncOutput() {
-      domHandler.objects.board.style.setProperty(
-        "--player-color",
-        domHandler.objects.playroom.dataset.color1
-      );
-      domHandler.objects.playerIndicator.textContent =
-        domHandler.objects.playroom.dataset.player1;
-      domHandler.objects.playerIndicator.style.color =
-        domHandler.objects.playroom.dataset.color1;
-    },
-    changePlayer() {
-      [
-        domHandler.objects.playroom.dataset.player1,
-        domHandler.objects.playroom.dataset.player2,
-      ] = [
-        domHandler.objects.playroom.dataset.player2,
-        domHandler.objects.playroom.dataset.player1,
-      ];
-      [
-        domHandler.objects.playroom.dataset.color1,
-        domHandler.objects.playroom.dataset.color2,
-      ] = [
-        domHandler.objects.playroom.dataset.color2,
-        domHandler.objects.playroom.dataset.color1,
-      ];
-      [
-        domHandler.objects.playroom.dataset.sign1,
-        domHandler.objects.playroom.dataset.sign2,
-      ] = [
-        domHandler.objects.playroom.dataset.sign2,
-        domHandler.objects.playroom.dataset.sign1,
-      ];
-      pubSub.publish("syncOutput");
-      pubSub.publish("aiMove", domHandler.objects.playroom.dataset.player1);
-    },
-    showWinner() {
-      alert(`${domHandler.objects.playroom.dataset.player1} won!`);
-      return pubSub.publish("reset");
+      domHandler.objects.player1.textContent = player1[0];
+      domHandler.objects.player1.style.color = player1[1];
+      domHandler.objects.player2.textContent = player2[0];
+      domHandler.objects.player2.style.color = player2[1];
     },
   },
 };
 const playerBase = {
   players: new Map(),
+  identifiers: [],
   signs: new Set(),
+  current: "",
   checks: {
     checkNick(nick) {
       if (!playerBase.players.get(nick)) return false;
@@ -257,16 +202,50 @@ const playerBase = {
       return console.error(`${nick}: no such player`);
     },
   },
-  sets: {
-    setPlayer(details) {
-      const [nick, ...other] = details;
-      console.dir(details);
-      playerBase.players.set(nick, player(details));
+  customization: {
+    rename(nick, newNick, unknown = false) {
+      if (!playerBase.players.has(nick) && !unknown) return;
+      console.log("not yet");
+      if (unknown) {
+        nick = playerBase.identifiers[0][0];
+      }
+      console.dir(nick);
+      playerBase.players.get(nick).changeNick(newNick);
+      return newNick;
+    },
+    reSign(nick, newSign) {
+      if (!playerBase.checks.checkNick(nick))
+        return playerBase.checks.displayError(nick);
+      playerBase.players.get(nick).changeSign(newSign);
+    },
+    changeColor(nick, newColor) {
+      if (!playerBase.checks.checkNick(nick))
+        return playerBase.checks.displayError(nick);
+      playerBase.players.get(nick).changeColor(newColor);
+      playerBase.setIdentifiers();
     },
   },
-  reset() {
-    playerBase.players = new Map();
-    playerBase.signs = new Set();
+  setIdentifiers() {
+    const identifiers = [];
+    const nicks = [];
+    const colors = [];
+    for (const i of playerBase.players.values()) {
+      identifiers.push([i.getNick(), i.getSign(), i.getColor()]);
+      console.trace(i.getNick());
+      nicks.push(i.getNick());
+    }
+    playerBase.identifiers = identifiers.reverse();
+
+    pubSub.publish("playersLoaded", identifiers);
+    // debugger;
+    // console.dir(colors);
+  },
+  setPlayer(array) {
+    console.dir(array);
+    const [nick, color, sign] = array;
+    const newNick = playerBase.customization.rename("", nick, true);
+    playerBase.customization.changeColor(newNick, color);
+    playerBase.customization.reSign(newNick, sign);
   },
 };
 
@@ -319,6 +298,18 @@ const player = function (
     changeColor,
   };
 };
+playerBase.players.set("Cross", player());
+playerBase.players.set("Circle", player("Circle", "O", (color = "green")));
+
+playerBase.setCurrent = function (nickname) {
+  playerBase.current = nickname;
+};
+playerBase.getCurrent = function () {
+  console.log("fired getCurrent");
+  console.dir(playerBase.current);
+  pubSub.publish("showWinner", playerBase.current);
+};
+
 const logics = {
   ai: {
     makeMove(nick) {
@@ -336,7 +327,22 @@ const logics = {
       return button.click();
     },
   },
-
+  getPlayer(array) {
+    const currentPlayer = array.reverse()[0];
+    const lastPlayer = array[1];
+    const lastNickname = lastPlayer[0];
+    const nickname = currentPlayer[0];
+    const sign = currentPlayer[1];
+    const color = currentPlayer[2];
+    pubSub.publish("playerChanged", nickname);
+    pubSub.publish("trackPlayer", lastNickname);
+    pubSub.publish("newSign", sign);
+    pubSub.publish("newColor", color);
+    pubSub.publish("aiMove", nickname);
+  },
+  fetchPlayers() {
+    pubSub.publish("newTurn", playerBase.identifiers);
+  },
   getDiagonals(array) {
     const diagonal1 = [];
     const diagonal2 = [];
@@ -396,7 +402,6 @@ const logics = {
       alert("it's a draw!");
       return pubSub.publish("reset");
     }
-    return pubSub.publish("changePlayer");
   },
   checkWin(array) {
     const [columnArray, rowArray] = logics.getGrid(array);
@@ -406,31 +411,31 @@ const logics = {
     const diagonalMatch = logics.checkGrid([diagonal1, diagonal2]);
     for (const option of [rowMatch, columnMatch, diagonalMatch]) {
       if (!option) continue;
+
       return pubSub.publish("gameOver");
     }
     return logics.checkDraw(array);
   },
+  winStatus(nickname) {
+    alert(`${nickname} won!`);
+    debugger;
+    pubSub.publish("reset");
+  },
 };
-pubSub.subscribe("reset", domHandler.manipulation.clearBoard);
-pubSub.subscribe("reset", playerBase.reset);
-pubSub.subscribe("reRender", domHandler.manipulation.init);
-pubSub.subscribe("renderUsers", domHandler.events.renderUsers);
-
-// setting players
-pubSub.subscribe("setPlayer", playerBase.sets.setPlayer);
-
-// reversing players
-pubSub.subscribe("changePlayer", domHandler.events.changePlayer);
-
-// sync while showing players
-pubSub.subscribe("syncOutput", domHandler.events.syncOutput);
-
-// applying AI move
+pubSub.subscribe("boardLoaded", playerBase.setIdentifiers);
+pubSub.subscribe("playersLoaded", logics.getPlayer);
 pubSub.subscribe("aiMove", logics.ai.makeMove);
-
-// Win check
+pubSub.subscribe("newColor", domHandler.manipulation.setColor);
+pubSub.subscribe("newSetting", playerBase.setIdentifiers);
+pubSub.subscribe("trackPlayer", playerBase.setCurrent);
+pubSub.subscribe("setPlayer", playerBase.setPlayer);
+pubSub.subscribe("endOfTurn", logics.fetchPlayers);
 pubSub.subscribe("endOfTurn", logics.checkWin);
-
-pubSub.subscribe("gameOver", domHandler.events.showWinner);
-
+pubSub.subscribe("playerChanged", domHandler.manipulation.renderNick);
+pubSub.subscribe("newSign", domHandler.manipulation.signPlayer);
+pubSub.subscribe("newTurn", logics.getPlayer);
+pubSub.subscribe("gameOver", playerBase.getCurrent);
+pubSub.subscribe("showWinner", logics.winStatus);
+pubSub.subscribe("reset", domHandler.manipulation.clearBoard);
+pubSub.subscribe("reRender", domHandler.manipulation.init);
 domHandler.manipulation.init();
