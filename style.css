@@ -135,7 +135,7 @@ fieldset {
   font-size: 3vmax;
 }
 .board button[data-spell]::before {
-  translate: 400%;
+  translate: 50vmax;
 }
 .turn-indicator span {
   align-self: center;
